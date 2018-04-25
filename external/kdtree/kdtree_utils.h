@@ -150,6 +150,63 @@ PointCloud<T> XyzToCloud(std::vector<T> xyz, bool use_pbc, std::vector<T> box)
   return ptc;
 }
 
+// Gets a vector of XYZ in vec order 
+// xxx...yyy...zzz
+// and returns the point cloud
+template <typename T>
+PointCloud<T> VecXyzToCloud(std::vector<T> xyz, bool use_pbc, std::vector<T> box)
+{
+  PointCloud<T> ptc;
+  ptc.PBC = use_pbc;
+  ptc.pbcbox = box;
+
+  size_t np = xyz.size() / 3;
+  size_t size = np;
+  if (use_pbc) size *= 27;
+
+  ptc.pts.resize(size);
+
+  std::vector<int> indxs = {0,-1,1};
+
+  size_t np2 = 2*np;
+  for (size_t i = 0; i < np; i++) {
+    ptc.pts[i].x = xyz[i];
+    ptc.pts[i].y = xyz[np + i];
+    ptc.pts[i].z = xyz[np2 + i];
+    if (use_pbc) {
+      for (size_t m2 = 0; m2 < 3; m2++) {
+        for (size_t n2 = 0; n2 < 3; n2++) {
+          for (size_t l2 = 0; l2 < 3; l2++) {
+            if (m2 == 0 && n2 == 0 && l2 == 0) continue;
+            int m = indxs[m2];
+            int n = indxs[n2];
+            int l = indxs[l2];
+            size_t shift = (9*m2 + 3*n2 + l2) * np;
+              std::vector<T> shifti =
+                {T(m) * box[0]
+               + T(n) * box[3]
+               + T(l) * box[6],
+                 T(m) * box[1]
+               + T(n) * box[4]
+               + T(l) * box[7],
+                 T(m) * box[2]
+               + T(n) * box[5]
+               + T(l) * box[8]};
+
+//            std::vector<double> shifti = {(double(m) - 1) * box[0],  
+//                                          (double(n) - 1) * box[1],
+//                                          (double(l) - 1) * box[2]};
+            ptc.pts[i + shift].x = xyz[i] + shifti[0];
+            ptc.pts[i + shift].y = xyz[np + i] + shifti[1];
+            ptc.pts[i + shift].z = xyz[np2 + i] + shifti[2];
+          }
+        }
+      }
+    }
+  }
+  return ptc;
+}
+
 } //kdtutils
 
 #endif // KDTREE_UTILS_H
