@@ -1406,29 +1406,29 @@ double System::Energy(bool do_grads) {
     auto t2a = std::chrono::high_resolution_clock::now();
 #endif
 
-    // double edisp = 0.0;
-    double edisp = GetDispersion(do_grads);
+     double edisp = 0.0;
+    //double edisp = GetDispersion(do_grads);
 
 #ifdef TIMING
     auto t2b = std::chrono::high_resolution_clock::now();
 #endif
 
-    // double ebuck = 0.0;
-    double ebuck = GetBuckingham(do_grads);
+     double ebuck = 0.0;
+    //double ebuck = GetBuckingham(do_grads);
 #ifdef TIMING
     auto t3 = std::chrono::high_resolution_clock::now();
 #endif
 
-    // double e3b = 0.0;
-    double e3b = Get3B(do_grads);
+     double e3b = 0.0;
+    //double e3b = Get3B(do_grads);
 
 #ifdef TIMING
     auto t4 = std::chrono::high_resolution_clock::now();
 #endif
 
     // Electrostatic energy
-    double Eelec = GetElectrostatics(do_grads);
-    // double Eelec = 0.0;
+    //double Eelec = GetElectrostatics(do_grads);
+     double Eelec = 0.0;
 
 #ifdef TIMING
     auto t5 = std::chrono::high_resolution_clock::now();
@@ -1723,14 +1723,14 @@ double System::Get2B(bool do_grads, bool use_ghost) {
     // serial and parallel implementation
     std::vector<double> e2b_pool(num_threads, 0.0);
     std::vector<std::vector<double>> grad_pool(num_threads, std::vector<double>(3 * numsites_, 0.0));
-    std::vector<std::vector<double>> virial_pool(num_threads, std::vector<double>(9, 0.0));  // declare virial pool
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic) private(rank)
-#endif  // _OPENMP
+    std::vector<std::vector<double>> virial_pool(num_threads, std::vector<double>(9, 0.0)); // declare virial pool
+//#ifdef _OPENMP
+//#pragma omp parallel for schedule(dynamic) private(rank)
+//#endif  // _OPENMP
     for (size_t istart = 0; istart < nummon_; istart += step) {
-#ifdef _OPENMP
-        rank = omp_get_thread_num();
-#endif  // _OPENMP
+//#ifdef _OPENMP
+//        rank = omp_get_thread_num();
+//#endif  // _OPENMP
 
         // We loop over all the monomers, and we get all the dimers
         // in which this monomer is involved
@@ -1753,7 +1753,7 @@ double System::Get2B(bool do_grads, bool use_ghost) {
 #else
         AddClusters(2, cutoff2b_, istart, iend, use_ghost);
         std::vector<size_t> dimers = dimers_;
-#endif
+//#endif
 
         // In order to continue, we need at least one dimer
         // If the size of the dimer vector is not at least 2, means
@@ -1878,20 +1878,20 @@ double System::Get2B(bool do_grads, bool use_ghost) {
         }
     }
 
-#ifdef _OPENMP
-#pragma omp parallel private(first_grad, last_grad, rank)
-    {
-        rank = omp_get_thread_num();
-
-        first_grad = 0 + rank * grad_step;
-
-        last_grad = (rank + 1) * grad_step;
-
-        if (rank == num_threads - 1) {
-            last_grad = 3 * numsites_;
-        }
-#pragma omp barrier
-#endif
+//#ifdef _OPENMP
+//#pragma omp parallel private(first_grad, last_grad, rank)
+//    {
+//        rank = omp_get_thread_num();
+//
+//        first_grad = 0 + rank * grad_step;
+//
+//        last_grad = (rank + 1) * grad_step;
+//
+//        if (rank == num_threads - 1) {
+//            last_grad = 3 * numsites_;
+//        }
+//#pragma omp barrier
+//#endif
 
         // Condensate gradients
         //	const double scale = use_ghost ? 0.5 : 1.0;
@@ -1902,9 +1902,9 @@ double System::Get2B(bool do_grads, bool use_ghost) {
             }
         }
 
-#ifdef _OPENMP
-    }  // parallel
-#endif
+//#ifdef _OPENMP
+//    }  // parallel
+//#endif
 
     // Condensate energy
     for (int i = 0; i < num_threads; i++) {

@@ -52,10 +52,21 @@ double get_2b_energy(std::string mon1, std::string mon2, size_t nm, std::vector<
         xyz2 = std::move(tmp2);
     }
 
+    size_t nat1 = xyz1.size()/3/nm;
+    size_t nat2 = xyz2.size()/3/nm;
+
     // Water water
     if (mon1 == "h2o" and mon2 == "h2o") {
         x2o::x2b_v9x pot;
-        return pot.eval(xyz1.data(), xyz2.data(), nm);
+        double e = 0.0;
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic) reduction(+: e)
+#endif
+        for (size_t i = 0; i < nm; i++) {
+            e += pot.eval(xyz1.data() + 3*nat1*i, xyz2.data() + 3*nat2*i, 1);
+        }
+
+        return e;
         // Ion water
     } else if ((mon1 == "ar" or mon1 == "f" or mon1 == "cl" or mon1 == "br" or mon1 == "cs") and mon2 == "h2o") {
         // The order is bc the poly were generated this way
