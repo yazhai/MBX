@@ -44,6 +44,8 @@ SOFTWARE WILL NOT INFRINGE ANY PATENT, TRADEMARK OR OTHER RIGHTS.
 #include <memory>
 #include <unordered_map>
 
+#include <mpi.h>
+
 // Tools
 #include "kdtree/nanoflann.hpp"
 #include "kdtree/kdtree_utils.h"

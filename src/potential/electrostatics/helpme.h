@@ -2054,6 +2054,8 @@ typedef int MPI_Comm;
 #endif
 
 #endif
+//typedef struct ompi_communicator_t *MPI_Comm;
+#endif
 // original file: ../src/powers.h
 
 // BEGINLICENSE
