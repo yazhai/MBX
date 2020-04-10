@@ -43,6 +43,13 @@ SOFTWARE WILL NOT INFRINGE ANY PATENT, TRADEMARK OR OTHER RIGHTS.
 #include <iostream>
 #endif
 
+
+// Add MPI support : YZ 
+#ifdef USE_MPI
+#include <mpi.h>
+#endif
+
+
 /**
  * @file system.cpp
  * @brief System class implementation
@@ -1983,7 +1990,7 @@ double System::Get2B(bool do_grads, bool use_ghost) {
 #endif
 
     // Finalize the MPI environment.
-    MPI_Finalize();
+    // MPI_Finalize();
 
     return e2b_t + edisp_t;
 }

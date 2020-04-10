@@ -44,7 +44,24 @@ SOFTWARE WILL NOT INFRINGE ANY PATENT, TRADEMARK OR OTHER RIGHTS.
 #include <memory>
 #include <unordered_map>
 
-#include <mpi.h>
+// MPI utility
+#ifdef USE_MPI
+     #include <mpi.h>
+     #if SIZE_MAX == UCHAR_MAX
+     #define MPI_SIZE_T MPI_UNSIGNED_CHAR
+     #elif SIZE_MAX == USHRT_MAX
+     #define MPI_SIZE_T MPI_UNSIGNED_SHORT
+     #elif SIZE_MAX == UINT_MAX
+     #define MPI_SIZE_T MPI_UNSIGNED
+     #elif SIZE_MAX == ULONG_MAX
+     #define MPI_SIZE_T MPI_UNSIGNED_LONG
+     #elif SIZE_MAX == ULLONG_MAX
+     #define MPI_SIZE_T MPI_UNSIGNED_LONG_LONG
+     #else
+     #error "MPI_SIZE_T Type not defined !"
+     #endif
+#endif
+
 
 // Tools
 #include "kdtree/nanoflann.hpp"
@@ -1306,3 +1323,26 @@ to be the same.
 ////////////////////////////////////////////////////////////////////////////////
 
 #endif  // CU_INCLUDE_BBLOCK_SYSTEM_H
+
+/*
+** Block for MPI definitions
+*/ 
+#ifdef USE_MPI
+
+// Function 
+std::vector<size_t> 
+
+std::pair<size_t, size_t> get_start_and_size(size_t total_size, int world_size=1, int world_rank=0){
+
+    size_t piece = ceil( double(total_size) / world_size) ;
+    size_t leftover = std::max( int(total_size - piece * world_rank), 0);
+    size_t actual_send_size = std::min(piece, leftover);
+
+    std::pair<size_t, size_t> start_and_size( total_size-leftover, actual_send_size);
+
+    return start_and_size;
+}
+
+#endif
+
+////////////////////////////////////////////////////////////////////////////////

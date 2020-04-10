@@ -21,6 +21,7 @@ If you want to run the code in parallel, set the `-DUSE_OPENMP:BOOL=TRUE`, and i
 - Any system should use more than one node.
 At this point, a folder called `install` should have been created.
 ```
+rm -r build/* 
 cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=" -fPIC -O2 -Wall" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DUSE_OPENMP:BOOL=TRUE/FALSE -H. -Bbuild
 cd build
 make
@@ -35,6 +36,13 @@ cd tests
 ./run_tests.sh 2> out
 ```
 If all tests are passing, you are good to go!
+
+
+Unittest is located at:
+```
+cd ./build/MBX-core-prefix/src/MBX-core-build/tests/unittests
+ctest
+```
 
 ## Json File
 To make life easier for you, a json configuration file can be used to pass all the information that MBX needs. Usually, one does not need to change anything except a couple of options. In any case, all the options of the json file are explained below.
