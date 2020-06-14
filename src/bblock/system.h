@@ -1329,8 +1329,23 @@ to be the same.
 */ 
 #ifdef USE_MPI
 
-// Function 
-std::vector<size_t> 
+
+// Define MPI wrapper 
+template <typename T> 
+struct MPIWrapper{
+
+    MPI_Comm mpiCommunicator_;
+
+    /// The total number of MPI nodes involved in reciprocal space work.
+    int numNodes_;
+    /// The MPI rank of this node.
+    int myRank_;
+
+};
+
+
+
+// std::vector<size_t> 
 
 std::pair<size_t, size_t> get_start_and_size(size_t total_size, int world_size=1, int world_rank=0){
 
