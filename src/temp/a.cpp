@@ -1,73 +1,88 @@
 #include <mpi.h>
 #include <vector>
 #include <iostream>
+#include <math.h>
 
+#include "a.h"    
 
-size_t split_tasks( size_t world_size, size_t world_rank, 
-                    size_t itotal, size_t &istart, size_t &iend,
-                    int bodies){
-    size_t n_total, n_rank;  // n_total: total pairs/triples; n_rank: number of pairs/triples at this rank
+size_t n_choose_k(size_t n, size_t k){
+    
+    size_t result = 1;
 
-    if (bodies == 2) {
-        n_total = itotal*(itotal-1) / 2;
-    } else if ( bodies == 3){
-        n_total = itotal*(itotal-1)*(itotal-2) / 6;
-    } else{
-        std::cerr << "Wrong input: bodies should be either 2 or 3.";
+    for (size_t ii=0; ii < k; ii++){
+        result *= (n-ii) / (ii+1);
     }
 
-    size_t n_ave = size_t (n_total/world_size); // expected average n_total for each rank;
-
-    std::vector<size_t> istart_all;
-    std::vector<size_t> iend_all;
-    std::vector<size_t> n_rank_all;
-    size_t i_current = 0; // 
-
-    for(size_t irank = 0; irank < world_size ; irank++){
-        istart_all.push_back(ii)
-        size_t n_rank = 0;
-        n_i = 0;
-
-        // check how many samples for current i
-        {
-            n_rank += n_i;
-            if (bodies == 2) {
-                n_i = size_t ( itotal - istart - 1 );
-            } else {
-                n_i = size_t ( itotal - istart - 1) * (itotal - istart - 2) / 2;
-            }
-        }while (n_rank + n_i < n_ave)
+    return result;
+}
 
 
+std::vector<size_t> split_tasks(size_t world_size, size_t world_rank,
+                    size_t itotal, int bodies,
+                    std::vector<int> &istart_worlds, std::vector<int> &icount_worlds){
+// Function to approximately divide 1b/2b/3b tasks for MPI
+//
+// Usage:
+// world_size / world_rank : total number of processes and current process id (from 0 to world_size-1)
+// itotal : number of monomers 
+// bodies : if it is to calculate 1b/2b/3b
+// istart_worlds/icount_worlds : the begining id (inclusive) and the number of the monomer for each world rank after splitting
+// 
+// Return: None
 
+    std::vector<size_t> n_sample_worlds;
+    int icurrent(0), icounts_rank(0); 
 
-    } 
+    for (size_t ii = 0; ii < world_size; ii++){
 
+        // determine the iend for this rank by approximating percentage 
+        double iend_percentage = 1 - pow( double( double(world_size-ii-1) / world_size ), 1.0/double(bodies)) ;
 
+        int iend_temp = int (itotal * iend_percentage);
+        iend_temp = std::max( icurrent + 1, iend_temp);
 
+        size_t n_sample_temp = n_choose_k(itotal - icurrent, bodies) - n_choose_k(itotal - iend_temp, bodies);
+        
 
+        istart_worlds.push_back(icurrent);
+        icount_worlds.push_back(int(iend_temp - icurrent));
+        n_sample_worlds.push_back(n_sample_temp);
 
-    return iworld;
+        icurrent = iend_temp;
+    }
 
+    return n_sample_worlds;
 }
 
 
 
 
-double calculate(std::vector<double> input_){
 
 
 
-    bool mpi_initialized_ = false;
+
+
+
+
+
+
+
+
+
+double calculate(std::vector<double> inputvector){
+
+
+
+    // bool mpi_initialized_ = false;
 
 
     double result = 0.0;
 
 
 
-#if HAVE_MPI==1
+// #if HAVE_MPI==1
 
-    mpi_initialized_ = true;
+    // mpi_initialized_ = true;
 
    // Initialize MPI
    MPI_Init(NULL, NULL);
@@ -89,6 +104,12 @@ double calculate(std::vector<double> input_){
 //    std::vector<size_t> index_this_rank(nummon_);
 //    size_t index_size_this_rank;    
 
+
+    std::vector<int> istart_worlds, icount_worlds;
+    size_t itotal = inputvector.size();
+    int bodies = 2;
+
+    std::vector<size_t> n_sample_worlds = split_tasks(world_size, world_rank, itotal, bodies, istart_worlds, icount_worlds) ;
 
 //    if (world_rank == 0) {
 //        std::vector<std::vector<size_t> > indexes(world_size);
@@ -124,19 +145,67 @@ double calculate(std::vector<double> input_){
 
 
 
-#endif
+// #endif
 
 
-    
+    // Some functions that make calculations
+    std::vector<double> temp_result(icount_worlds[world_rank], 0.0);
+    std::vector<double>::iterator it = inputvector.begin();
+    for (size_t ii = 0; ii < icount_worlds[world_rank]; ii++){
+        temp_result[ii] = inputvector[istart_worlds[world_rank] + ii] * 0.1 + 0.001 * ii;
+        result += temp_result[ii];
+    }
 
-    for ( std::vector<double>::iterator it = input_.begin(); it != input_.end(); it++){
-        result += (*it) * 0.3 ; 
+    // MPI_Allreduce to get sum for all worlds
+    double result_final(0.0);
+    MPI_Allreduce( &result, &result_final, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
+
+    // MPI_Allgatherv to gather vectors for all worlds
+    // ?? How to solve the problem of const int* ?
+
+
+    double *result_recv = new double[itotal];
+
+
+    MPI_Allgatherv( &temp_result[0],  icount_worlds[world_rank], MPI_DOUBLE,
+                    result_recv, &icount_worlds[0], &istart_worlds[0], MPI_DOUBLE,
+                    MPI_COMM_WORLD);
+
+
+
+    for (int ii=0; ii<itotal; ii++){
+        std::cout << world_rank << "\t" << result_recv[ii] << std::endl;
     }
 
 
 
-    return result;
+    delete [] result_recv;
+
+    // for ( std::vector<double>::iterator it = inputvector.begin(); it != inputvector.end(); it++){
+    //     result += (*it) * 0.3 ; 
+
+    // }
+
+
+
+    // if (world_rank == 0){
+    //     size_t world_size_test = 16;
+    //     size_t itotal = 100000;
+    //     size_t istart(0), iend(0), icounts_rank(0);
+
+    //     for (size_t ii=0; ii<world_size_test; ii++){
+    //         icounts_rank = split_tasks(world_size_test, ii, itotal, istart, iend, 2) ;
+
+    //         std::cout << istart << " \t " << iend << " \t " << icounts_rank << std::endl;
+
+    //     }
+
+    // }
+
+
+
+    return result_final;
 }
 
 
@@ -145,7 +214,9 @@ int main(){
 
     std::vector<double> inbuff;
 
-    for(int i=0; i<100; i++){
+    size_t itotal = 20;
+
+    for(size_t i=0; i<itotal; i++){
         double v =  2.1 * i ;
         inbuff.push_back( v );
     }
@@ -153,6 +224,8 @@ int main(){
     double result = calculate(inbuff);
 
     std::cout << result << std::endl;
+
+
 
 
     return 0;
